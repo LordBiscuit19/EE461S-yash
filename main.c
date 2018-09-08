@@ -1,23 +1,35 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 const int BUF_SIZE = 2000;
 const int BUF_INC = 1000;
+const char* SPACE = " ";
 
 void getLine(char* userIn);
-int strCmp(char* str1, char* str2);
-char** parseString(char* str, char delim);
+char** parseString(char* str, const char* delim);
 
 
 int main() {
     char* userIn = malloc(sizeof(char)*BUF_SIZE);
+    char** parsedIn;
     while (1){
         printf("$ ");
         getLine(userIn);
-        if (strCmp(userIn,"exit") == 1)
+        parsedIn = parseString(userIn, SPACE);
+        int i = 0;
+        while (*(parsedIn + i) != NULL){
+            printf("%s\n", *(parsedIn + i));
+            i++;
+        }
+        if (strcmp(parsedIn[0],"exit") == 0)
             break;
     }
     free(userIn);
+    for (int i = 0; i < sizeof(parsedIn)/sizeof(char**); i++){
+        free(*(parsedIn + i));
+    }
+    free(parsedIn);
     exit (0);
 }
 
@@ -52,42 +64,21 @@ void getLine (char* userIn){
 }
 
 
-//compares 2 strings. If they are the same return 1 and if they are not return -1.
-int strCmp(char* str1, char* str2){
-    int i = 0;
-    int j = 0;
-    while (*(str1 + i) != '\0' && *(str2 + j) != '\0'){
-        if (*(str1 + i) != *(str2 + j)){
-            return (-1);
-        }
-        i++;
-        j++;
-    }
-    if (*(str1 + i) == *(str2 + j)){
-        return (1);
-    }
-    else
-        return (-1);
-}
 
-
-
-char** parseString(char* str, char delim){
-    int begin = 0;
-    int end = 0;
-    int  parsedPtr = 0;
+//Parses the string in str into an array of strings separated by the delimiter delim
+char** parseString(char* str, const char* delim){
+    char* tokenized = strtok(str, delim);
     char** parsed = malloc(sizeof(char*));
-    while (*(str + begin) != '\0'){
-        while (*(str + end) != delim && *(str + end) != '\0'){
-            end++;
-        }
-        *(parsed + parsedPtr) = malloc(sizeof(char) * (1 + end - begin));
-        int i = 0;
-        while (end < begin-1) {
-            *(*(parsed + parsedPtr) + i) = *(str + end);
-            end++;
-            i++;
-        }
-
+    int parsedPtr = 0;
+    int stringNum = 1;
+    while (tokenized != NULL) {
+        *(parsed + parsedPtr) = malloc(sizeof(char) * strlen(tokenized));
+        strcpy(*(parsed + parsedPtr), tokenized);
+        parsedPtr++;
+        stringNum++;
+        tokenized = strtok(NULL, delim);
+        parsed = realloc(parsed, stringNum*sizeof(char *));
     }
+    *(parsed + parsedPtr) = NULL;
+    return parsed;
 }
