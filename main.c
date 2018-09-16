@@ -19,6 +19,7 @@ int yashHelp(char** args);
 int yashExit(char** args);
 int lookForPipe(char** args);
 int lookForRedir(char** args, int* returns);
+void setUpRedir (char** args, _Bool output, _Bool input, _Bool error);
 
 int (*SHELL_FNCTS[])(char**) = {&yashExit};
 const char* SPACE = " ";
@@ -209,6 +210,53 @@ int exCmd2(char** args1, char** args2){
 }
 
 
+void setUpRedir (char** args, _Bool output, _Bool input, _Bool error){
+    int* redirOffsetAndType = malloc(sizeof(int) * 6);
+    for (int i = 0; i < 6; i++){    //initialize array of data used for file redirection detection
+        *(redirOffsetAndType + i) = -1;
+    }
+
+    if(lookForRedir(args, redirOffsetAndType) == 1){    //there is a redirect
+        //printf ("filename : %s\n", args[redirOffsetAndType[3] + 1]);
+        char* fileName;
+        //printf("args[0]: %s\n", args[0]);
+        
+        if (output){
+            if(redirOffsetAndType[0] == 1){
+                fileName = *(args + redirOffsetAndType[3] + 1);
+                *(args + redirOffsetAndType[3]) = NULL;
+                int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
+                //printf ("fd: %d\n", fd);
+                dup2(fd, STDOUT_FILENO);
+            }
+        }
+
+        if (input){
+            if (redirOffsetAndType[1] == 1){
+                fileName = *(args + redirOffsetAndType[4] + 1);
+                *(args + redirOffsetAndType[4]) = NULL;
+                int fd = open(fileName, O_RDONLY);
+                //printf ("fd: %d\n", fd);
+                dup2(fd, STDIN_FILENO);
+            }
+        }
+
+        if (error){
+            if(redirOffsetAndType[2] == 1){
+                fileName = *(args + redirOffsetAndType[5] + 1);
+                *(args + redirOffsetAndType[5]) = NULL;
+                int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
+                //printf ("fd: %d\n", fd);
+                dup2(fd, STDERR_FILENO);
+            }
+        }
+
+        free(redirOffsetAndType);
+    }
+    return;
+}
+
+
 //executes all user commands that require an external program
 int lnchPrg1(char** args){
     pid_t pid;
@@ -217,52 +265,10 @@ int lnchPrg1(char** args){
 
 
     if (pid == 0){ //child
-        int* redirOffsetAndType = malloc(sizeof(int) * 6);
-        for (int i = 0; i < 6; i++){    //initialize array of data used for file redirection detection
-            *(redirOffsetAndType + i) = -1;
-        }
-
-        if(lookForRedir(args, redirOffsetAndType) == 1){    //there is a redirect
-            printf ("filename : %s\n", args[redirOffsetAndType[3] + 1]);
-            char* fileName;
-            //printf("args[0]: %s\n", args[0]);
-
-            if(redirOffsetAndType[0] == 1){
-		        fileName = *(args + redirOffsetAndType[3] + 1);
-                *(args + redirOffsetAndType[3]) = NULL;
-		        int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
-                //printf ("fd: %d\n", fd);
-                dup2(fd, STDOUT_FILENO);
-            }
-
-            if (redirOffsetAndType[1] == 1){
-                fileName = *(args + redirOffsetAndType[4] + 1);
-                *(args + redirOffsetAndType[4]) = NULL;
-                int fd = open(fileName, O_RDONLY);
-                //printf ("fd: %d\n", fd);
-                dup2(fd, STDIN_FILENO);
-            }
-
-            if(redirOffsetAndType[2] == 1){
-                fileName = *(args + redirOffsetAndType[5] + 1);
-                *(args + redirOffsetAndType[5]) = NULL;
-                int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
-                //printf ("fd: %d\n", fd);
-                dup2(fd, STDERR_FILENO);
-            }
-
-            free(redirOffsetAndType);
-            execvp(args[0], args);
-            printf("execvp error in lnchPrg1");
-            return(-1);
-        }
-
-        else { //there is no redirect
-            free(redirOffsetAndType);
-            execvp(args[0], args);
-            printf("execvo error in lnchPrg1");
-            return (-1);
-        }
+        setUpRedir(args, 1, 1, 1);
+        execvp(args[0], args);
+        printf("execvp error in lnchPrg1");
+        return(-1);
     }
 
 
@@ -298,12 +304,14 @@ int lnchPrg2(char** args1, char** args2){
         else{ //child 2 read end of pipe
             close(pipeFd[1]);
             dup2(pipeFd[0], STDIN_FILENO);
+            setUpRedir(args2, 1, 0, 1);
             execvp(args2[0], args2);
         }
     }
     else{ //child 1 write end of pipe
         close(pipeFd[0]);
         dup2(pipeFd[1], STDOUT_FILENO);
+        setUpRedir(args1, 0, 1, 1); 
         execvp(args1[0], args1);
     }
 
