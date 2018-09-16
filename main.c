@@ -160,25 +160,26 @@ int lookForRedir(char** args, int* returns){
     //******
     //to-do: handle the case of multiple file redirect symbols (need an index for each symbol)
     int i = 0;
+    int foundRedir = -1;
     while (*(args + i) != NULL){
         if (strcmp(*(args+i), ">") == 0){
-            *(returns + 0) = i; //puts the offset of the redirection symbol in the first spot of returns
-            *(returns + 1) = 1; //puts 1 in the second spot of returns to signify output redirection
-            return 1; //returns 1 if it found a redirect
+            *(returns + 3) = i; //puts the offset of the redirection symbol in the fourth spot of returns
+            *(returns + 0) = 1; //puts 1 in the first spot of returns to signify output redirection
+	        foundRedir = 1;
         }
         if (strcmp(*(args+i), "<") == 0){
-            *(returns + 0) = i; //puts the offset of the redirection symbol in the first spot of returns
-            *(returns + 2) = 1; //puts 1 in the third spot of returns to signify input redirection
-            return 1; //returns 1 if it found a redirect
-        }
+            *(returns + 4) = i; //puts the offset of the redirection symbol in the fifth spot of returns
+            *(returns + 1) = 1; //puts 1 in the second spot of returns to signify input redirection
+            foundRedir = 1;
+	    }
         if (strcmp(*(args+i), "2>") == 0){
-            *(returns + 0) = i; //puts the offset of the redirection symbol in the first spot of returns
-            *(returns + 3) = 1; //puts 1 in the fourth spot of returns to signify error redirection
-            return 1; //returns 1 if it found a redirect
-        }
+            *(returns + 5) = i; //puts the offset of the redirection symbol in the sixth spot of returns
+            *(returns + 2) = 1; //puts 1 in the third spot of returns to signify error redirection
+            foundRedir = 1;
+	    }
         i++;
     }
-    return (-1); //returns -1 if it didn't find a redirect
+    return (foundRedir);
 }
 
 
@@ -216,32 +217,35 @@ int lnchPrg1(char** args){
 
 
     if (pid == 0){ //child
-        int* redirOffsetAndType = malloc(sizeof(int) * 4);
-        for (int i = 0; i < 4; i++){    //initialize array of data used for file redirection detection
+        int* redirOffsetAndType = malloc(sizeof(int) * 6);
+        for (int i = 0; i < 6; i++){    //initialize array of data used for file redirection detection
             *(redirOffsetAndType + i) = -1;
         }
 
         if(lookForRedir(args, redirOffsetAndType) == 1){    //there is a redirect
-            //to-do: handle the case of multiple redirect symbols
-            int redirSymbolOffset = redirOffsetAndType[0];
-            printf ("filename : %s\n", args[redirSymbolOffset + 1]);
-            char* fileName = args[redirSymbolOffset + 1];
-            *(args + redirSymbolOffset) = NULL; //cut off the file name from the args list so we can send it to execvp
+            printf ("filename : %s\n", args[redirOffsetAndType[3] + 1]);
+            char* fileName;
             //printf("args[0]: %s\n", args[0]);
 
-            if(redirOffsetAndType[1] == 1){
-                int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
+            if(redirOffsetAndType[0] == 1){
+		        fileName = *(args + redirOffsetAndType[3] + 1);
+                *(args + redirOffsetAndType[3]) = NULL;
+		        int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
                 //printf ("fd: %d\n", fd);
                 dup2(fd, STDOUT_FILENO);
             }
 
-            if (redirOffsetAndType[2] == 1){
+            if (redirOffsetAndType[1] == 1){
+                fileName = *(args + redirOffsetAndType[4] + 1);
+                *(args + redirOffsetAndType[4]) = NULL;
                 int fd = open(fileName, O_RDONLY);
                 //printf ("fd: %d\n", fd);
                 dup2(fd, STDIN_FILENO);
             }
 
-            if(redirOffsetAndType[3] == 1){
+            if(redirOffsetAndType[2] == 1){
+                fileName = *(args + redirOffsetAndType[5] + 1);
+                *(args + redirOffsetAndType[5]) = NULL;
                 int fd = open(fileName, O_WRONLY|O_TRUNC|O_CREAT, S_IRWXU);
                 //printf ("fd: %d\n", fd);
                 dup2(fd, STDERR_FILENO);
