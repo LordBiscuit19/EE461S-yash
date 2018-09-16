@@ -58,7 +58,6 @@ int main() {
                 }
                 free(userIn);
                 free(parsedIn);
-                free(parsedIn2);
                 exit(0);
             }
         }
@@ -83,7 +82,6 @@ int main() {
                 free(*(parsedIn2 + i));
                 i++;
             }
-            free(parsedIn2);
             parsedIn2 = NULL;
         }
     }
