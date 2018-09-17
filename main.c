@@ -25,12 +25,25 @@ int (*SHELL_FNCTS[])(char**) = {&yashExit};
 const char* SPACE = " ";
 const char* SHELL_CMDS[] = {"exit"};
 const int NUM_SHELL_CMDS = 1;
+int topPid;
+
+
+void handle_SIGINT(){
+    kill(-topPid, SIGINT); 
+}
+
+
+void handle_SIGTSTP(){
+    printf("SIGTSTP\n");   
+}
 
 
 int main() {
     char* userIn = malloc(sizeof(char)*BUF_SIZE);
     char** parsedIn;
     char** parsedIn2 = NULL;
+    signal(SIGINT, handle_SIGINT);
+    signal(SIGTSTP, handle_SIGTSTP);
     while (1){
         printf("# ");
         getLine(userIn);
@@ -150,6 +163,7 @@ int lookForPipe (char** args){
     }
     return (-1); //-1 will be the signal that a pipe was not found.
 }
+
 
 //***************************************
 //Returns: -1 if no redirect found, 1 if redirect is found.
@@ -279,7 +293,8 @@ int lnchPrg1(char** args){
 
 
     else { //parent
-        setpgid(pid, pid);
+        setpgid(pid,pid);
+        topPid = pid;
         waitpid(pid, waitStat, 0);
         return (0);
     }
@@ -299,19 +314,20 @@ int lnchPrg2(char** args1, char** args2){
             close(pipeFd[1]);
             setpgid(pid1, pid1);
             setpgid(pid2, pid1);
+            topPid = pid1;
             waitpid(pid2, waitStat, 0);
         }
         else{ //child 2 read end of pipe
             close(pipeFd[1]);
             dup2(pipeFd[0], STDIN_FILENO);
-            setUpRedir(args2, 1, 0, 1);
+            setUpRedir(args2, 1, 1, 1);
             execvp(args2[0], args2);
         }
     }
     else{ //child 1 write end of pipe
         close(pipeFd[0]);
         dup2(pipeFd[1], STDOUT_FILENO);
-        setUpRedir(args1, 0, 1, 1); 
+        setUpRedir(args1, 1, 1, 1); 
         execvp(args1[0], args1);
     }
 
