@@ -10,7 +10,7 @@ const int BUF_SIZE = 2000;
 const int BUF_INC = 1000;
 
 
-void getLine(char* userIn);
+_Bool getLine(char* userIn);
 char** parseString(char* str, const char* delim);
 int exCmd1(char** args);
 int exCmd2(char** args1, char** arg2);
@@ -33,12 +33,20 @@ int numJobs = 0;
 struct node* head = NULL;
 
 void handle_SIGINT(){
-    removeNodePid(head, topPid);
+    head = removeNodePid(head, topPid);
     //kill((-1)*topPid, SIGINT);
 }
 
 void handle_SIGTSTP(){
     kill((-1)*topPid, SIGTSTP); 
+}
+
+
+void handle_SIGCHLD(){
+    int pid, status;
+    pid = waitpid(-1, &status, WNOHANG);
+    printf("SIGCHLD pid: %d\n", pid);
+    head = removeNodePid(head, pid);
 }
 
 
@@ -48,9 +56,12 @@ int main() {
     char** parsedIn2 = NULL;
     signal(SIGINT, handle_SIGINT);
     signal(SIGTSTP, handle_SIGTSTP);
+    signal(SIGCHLD, handle_SIGCHLD);
     while (1){
         printf("# ");
-        getLine(userIn);
+        if(getLine(userIn)){
+            exit(0);
+        }
         parsedIn = parseString(userIn, SPACE);
         int i = 0;
         /*
@@ -65,35 +76,44 @@ int main() {
             *(parsedIn + pipeOffset) = NULL; //split the user input string into the command before and after the pipe
             if (exCmd2(parsedIn, parsedIn2) == 42) {
                 i = 0;
+                /*
                 while (*(parsedIn + i) != NULL) {
                     free(*(parsedIn + i));
                     i++;
                 }
+                */
                 i = 0;
+                /*
                 while (*(parsedIn2 + i) != NULL) {
                     free(*(parsedIn2 + i));
                     i++;
                 }
                 free(userIn);
                 free(parsedIn);
+                */
                 exit(0);
             }
         }
         else if (exCmd1(parsedIn) == 42){
             i = 0;
+            /*
             while (*(parsedIn + i) != NULL){
                 free(*(parsedIn + i));
                 i++;
             }
             free(userIn);
             free(parsedIn);
+            */
             exit (0);
         }
         i = 0;
+        /*
         while (*(parsedIn + i) != NULL){
             free(*(parsedIn + i));
             i++;
         }
+        */
+        /*
         free(parsedIn);
         if (parsedIn2 != NULL) {
             while (*(parsedIn2 + i) != NULL) {
@@ -102,6 +122,7 @@ int main() {
             }
             parsedIn2 = NULL;
         }
+        */
     }
 
 }
@@ -109,16 +130,20 @@ int main() {
 
 //get a line of input from the user. Store the line in the userIn parameter. Will automatically resize the userIn
 //memory if input becomes too large
-void getLine (char* userIn){
+_Bool getLine (char* userIn){
     int bufferSize = BUF_SIZE;
     userIn = realloc(userIn, sizeof(char) * bufferSize);
     int c;
     int i = 0;
     while (1){
         c = getchar();
-        if (c == '\n' || c == EOF){
+        if (c == '\n'){
             *(userIn + i) = '\0';
-            break;
+            return 0;
+        }
+        if (c == EOF){
+            *(userIn + i) = '\0';
+            return 1;
         }
         else{
             *(userIn + i) = c;
@@ -133,7 +158,7 @@ void getLine (char* userIn){
             }
         }
     }
-    return;
+    return 0;
 }
 
 
@@ -208,6 +233,7 @@ _Bool lookForBGProcess(char** args, _Bool removeSymbol){
     while (*(args + i) != NULL){
         if (strcmp(*(args + i), "&") == 0){
             if(removeSymbol){
+                
                 *(args + i) = NULL;
             }
             return 1;
@@ -296,6 +322,7 @@ int lnchPrg1(char** args){
     pid_t pid;
     int* waitStat;
     pid = fork();
+    printf("child pid: %d\n", pid);
     _Bool BGFlag = lookForBGProcess(args, 0);
 
     if (pid == 0){ //child
@@ -322,7 +349,8 @@ int lnchPrg1(char** args){
             numJobs++;
             newNode->jobNum = numJobs;
             newNode->state = 1;
-            newNode->name = args[0];
+            strcpy(newNode->name, args[0]);
+            newNode->next = NULL;
             head = addNode(head, newNode);
             return (0);
         }
@@ -332,7 +360,8 @@ int lnchPrg1(char** args){
             numJobs++;
             newNode->jobNum = numJobs;
             newNode->state = 1;
-            newNode->name = args[0];
+            strcpy(newNode->name, args[0]);
+            newNode->next = NULL;
             head = addNode(head, newNode);
             waitpid(pid, waitStat, 0);
             head = removeNodePid(head,pid);

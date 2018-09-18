@@ -47,11 +47,13 @@ struct node* removeNodePid(struct node* head, int pid){
                 head->next = cur->next;
                 printf("removed node: %d\n", cur->pid);
                 kill ((-1)*cur->pid, SIGINT);
+                free (cur->name);
                 free(cur);
             }
             else{   //if there is only one node
                 printf("removed node: %d\n", cur->pid);
                 kill ((-1)*cur->pid, SIGINT);
+                free (cur->name);
                 free(cur);
                 head = NULL;
             }
@@ -61,6 +63,7 @@ struct node* removeNodePid(struct node* head, int pid){
             printf("removed node: %d\n", cur->pid);
             prev->next = cur->next;
             kill ((-1)*cur->pid, SIGINT);
+            free (cur->name);
             free(cur);
         }
     }
@@ -82,10 +85,12 @@ struct node* removeNodeJobNum(struct node* head, int jobNum){
             if (cur->next != NULL){ //if there are more than one node
                 head->next = cur->next;
                 kill ((-1)*cur->pid, SIGINT);
+                free (cur->name);
                 free(cur);
             }
             else{ //if there is only one node
                 kill ((-1)*cur->pid, SIGINT);
+                free (cur->name);
                 free(cur);
                 head = NULL;
             }
@@ -93,6 +98,7 @@ struct node* removeNodeJobNum(struct node* head, int jobNum){
         if (prev != NULL){//in the middle or at end
             prev->next = cur->next;
             kill ((-1)*cur->pid, SIGINT);
+            free (cur->name);
             free(cur);
         }
     }
@@ -111,6 +117,7 @@ void freeLL(struct node* head){
         kill ((-1)*cur->pid, SIGINT);
         prev = cur;
         cur = cur->next;
+        free (prev->name);
         free(prev);
     }
     return;
@@ -140,7 +147,7 @@ void LLPrintJobs(struct node* head, int mostRecentJob){
                 printf("Done    ");
                 break;
         }
-        printf("\n"); 
+        printf("%s\n", cur->name); 
         cur = cur->next;
     }
     return;
