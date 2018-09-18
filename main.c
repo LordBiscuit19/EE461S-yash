@@ -4,19 +4,11 @@
 #include <unistd.h>
 #include <wait.h>
 #include <fcntl.h>
+#include "LList.h"
 
 const int BUF_SIZE = 2000;
 const int BUF_INC = 1000;
 
-enum states = {Running, Stopped, Done};
-
-typedef struct node {
-    int pid;
-    int jobNum;
-    enum states state;
-    char* name;
-    struct node* next;
-}    
 
 void getLine(char* userIn);
 char** parseString(char* str, const char* delim);
@@ -26,21 +18,23 @@ int lnchPrg1(char** args);
 int lnchPrg2 (char** args1, char** args2);
 int yashHelp(char** args);
 int yashExit(char** args);
+int yashJobs(char**args);
 int lookForPipe(char** args);
 int lookForRedir(char** args, int* returns);
+int lookForBGProcess(char** args);
 void setUpRedir (char** args, _Bool output, _Bool input, _Bool error);
 
-int (*SHELL_FNCTS[])(char**) = {&yashExit};
+int (*SHELL_FNCTS[])(char**) = {&yashExit, &yashJobs};
 const char* SPACE = " ";
-const char* SHELL_CMDS[] = {"exit"};
-const int NUM_SHELL_CMDS = 1;
+const char* SHELL_CMDS[] = {"exit", "jobs"};
+const int NUM_SHELL_CMDS = 2;
 int topPid;
-
+int numJobs = 0;
+struct node* head = NULL;
 
 void handle_SIGINT(){
     kill((-1)*topPid, SIGINT); 
 }
-
 
 void handle_SIGTSTP(){
     kill((-1)*topPid, SIGTSTP); 
@@ -207,6 +201,19 @@ int lookForRedir(char** args, int* returns){
 }
 
 
+//Looks for the & symbol in args. Returns 1 if it is found and -1 if it is not. Sets args at the position of the & to be NULL
+int lookForBGProcess(char** args){
+    int i = 0;
+    while (*(args + i) != NULL){
+        if (strcmp(*(args + i), "&") == 0){
+            *(args + i) = NULL;
+            return 1;
+        }
+    }
+    return -1;
+}
+
+
 //executes the user command. First it checks to see if the command is one of the built in commands in the shell
 int exCmd1(char** args){
     for (int i = 0; i < NUM_SHELL_CMDS; i++){
@@ -301,6 +308,15 @@ int lnchPrg1(char** args){
     else { //parent
         setpgid(pid,pid);
         topPid = pid;
+        if(lookForBGProcess(args) == 1){
+            struct node* newNode = malloc(sizeof(struct node*));
+            newNode->pid = pid;
+            numJobs++;
+            newNode->jobNum = numJobs;
+            newNode->status = 1;
+            newNode->name = args[0];
+            head = addNode(head, newNode);
+        }
         waitpid(pid, waitStat, 0);
         return (0);
     }
@@ -342,4 +358,8 @@ int lnchPrg2(char** args1, char** args2){
 
 int yashExit(char** args){
     return 42;
+}
+
+int yashJobs(char** args){
+    LLPrintJobs(head, topJob);    
 }
