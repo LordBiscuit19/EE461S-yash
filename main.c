@@ -8,6 +8,15 @@
 const int BUF_SIZE = 2000;
 const int BUF_INC = 1000;
 
+enum states = {Running, Stopped, Done};
+
+typedef struct node {
+    int pid;
+    int jobNum;
+    enum states state;
+    char* name;
+    struct node* next;
+}    
 
 void getLine(char* userIn);
 char** parseString(char* str, const char* delim);
@@ -29,12 +38,12 @@ int topPid;
 
 
 void handle_SIGINT(){
-    kill(-topPid, SIGINT); 
+    kill((-1)*topPid, SIGINT); 
 }
 
 
 void handle_SIGTSTP(){
-    printf("SIGTSTP\n");   
+    kill((-1)*topPid, SIGTSTP); 
 }
 
 
@@ -277,7 +286,6 @@ int lnchPrg1(char** args){
     int* waitStat;
     pid = fork();
 
-
     if (pid == 0){ //child
         setUpRedir(args, 1, 1, 1);
         execvp(args[0], args);
@@ -285,12 +293,10 @@ int lnchPrg1(char** args){
         return(-1);
     }
 
-
     else if (pid == -1){
         printf("error forking from lnchPrg1");
         return(-2);
     }
-
 
     else { //parent
         setpgid(pid,pid);
