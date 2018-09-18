@@ -21,7 +21,7 @@ int yashExit(char** args);
 int yashJobs(char**args);
 int lookForPipe(char** args);
 int lookForRedir(char** args, int* returns);
-int lookForBGProcess(char** args);
+_Bool lookForBGProcess(char** args, _Bool removeSymbol);
 void setUpRedir (char** args, _Bool output, _Bool input, _Bool error);
 
 int (*SHELL_FNCTS[])(char**) = {&yashExit, &yashJobs};
@@ -33,7 +33,8 @@ int numJobs = 0;
 struct node* head = NULL;
 
 void handle_SIGINT(){
-    kill((-1)*topPid, SIGINT); 
+    removeNodePid(head, topPid);
+    //kill((-1)*topPid, SIGINT);
 }
 
 void handle_SIGTSTP(){
@@ -202,15 +203,18 @@ int lookForRedir(char** args, int* returns){
 
 
 //Looks for the & symbol in args. Returns 1 if it is found and -1 if it is not. Sets args at the position of the & to be NULL
-int lookForBGProcess(char** args){
+_Bool lookForBGProcess(char** args, _Bool removeSymbol){
     int i = 0;
     while (*(args + i) != NULL){
         if (strcmp(*(args + i), "&") == 0){
-            *(args + i) = NULL;
+            if(removeSymbol){
+                *(args + i) = NULL;
+            }
             return 1;
         }
+        i++;
     }
-    return -1;
+    return 0;
 }
 
 
@@ -292,9 +296,13 @@ int lnchPrg1(char** args){
     pid_t pid;
     int* waitStat;
     pid = fork();
+    _Bool BGFlag = lookForBGProcess(args, 0);
 
     if (pid == 0){ //child
         setUpRedir(args, 1, 1, 1);
+        if(BGFlag){
+            lookForBGProcess(args,1);
+        }
         execvp(args[0], args);
         printf("execvp error in lnchPrg1");
         return(-1);
@@ -308,17 +316,28 @@ int lnchPrg1(char** args){
     else { //parent
         setpgid(pid,pid);
         topPid = pid;
-        if(lookForBGProcess(args) == 1){
+        if(BGFlag){//BG process
             struct node* newNode = malloc(sizeof(struct node*));
             newNode->pid = pid;
             numJobs++;
             newNode->jobNum = numJobs;
-            newNode->status = 1;
+            newNode->state = 1;
             newNode->name = args[0];
             head = addNode(head, newNode);
+            return (0);
         }
-        waitpid(pid, waitStat, 0);
-        return (0);
+        else{//FG process
+            struct node* newNode = malloc(sizeof(struct node*));
+            newNode->pid = pid;
+            numJobs++;
+            newNode->jobNum = numJobs;
+            newNode->state = 1;
+            newNode->name = args[0];
+            head = addNode(head, newNode);
+            waitpid(pid, waitStat, 0);
+            head = removeNodePid(head,pid);
+            return (0);
+        }
     }
 }
 
@@ -357,9 +376,10 @@ int lnchPrg2(char** args1, char** args2){
 
 
 int yashExit(char** args){
+    freeLL(head);
     return 42;
 }
 
 int yashJobs(char** args){
-    LLPrintJobs(head, topJob);    
+    LLPrintJobs(head, numJobs);    
 }

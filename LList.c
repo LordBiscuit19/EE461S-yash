@@ -46,12 +46,12 @@ struct node* removeNodePid(struct node* head, int pid){
             if (cur->next != NULL){ //if there are more than 1 node
                 head->next = cur->next;
                 printf("removed node: %d\n", cur->pid);
-                kill (cur->pid, SIGINT);
+                kill ((-1)*cur->pid, SIGINT);
                 free(cur);
             }
             else{   //if there is only one node
                 printf("removed node: %d\n", cur->pid);
-                kill (cur->pid, SIGINT);
+                kill ((-1)*cur->pid, SIGINT);
                 free(cur);
                 head = NULL;
             }
@@ -60,7 +60,7 @@ struct node* removeNodePid(struct node* head, int pid){
             printf("in middle\n");
             printf("removed node: %d\n", cur->pid);
             prev->next = cur->next;
-            kill (cur->pid, SIGINT);
+            kill ((-1)*cur->pid, SIGINT);
             free(cur);
         }
     }
@@ -81,18 +81,18 @@ struct node* removeNodeJobNum(struct node* head, int jobNum){
         if (prev == NULL){ //at beginning
             if (cur->next != NULL){ //if there are more than one node
                 head->next = cur->next;
-                kill (cur->pid, SIGINT);
+                kill ((-1)*cur->pid, SIGINT);
                 free(cur);
             }
             else{ //if there is only one node
-                kill (cur->pid, SIGINT);
+                kill ((-1)*cur->pid, SIGINT);
                 free(cur);
                 head = NULL;
             }
         }
         if (prev != NULL){//in the middle or at end
             prev->next = cur->next;
-            kill (cur->pid, SIGINT);
+            kill ((-1)*cur->pid, SIGINT);
             free(cur);
         }
     }
@@ -108,7 +108,7 @@ void freeLL(struct node* head){
     struct node* prev = NULL;
     while (cur != NULL){
         printf("removed node: %d\n", cur->pid);
-        kill (cur->pid, SIGINT);
+        kill ((-1)*cur->pid, SIGINT);
         prev = cur;
         cur = cur->next;
         free(prev);
