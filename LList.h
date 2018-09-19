@@ -17,5 +17,6 @@ struct node* removeNodeJobNum(struct node* head, int jobNum);
 void freeLL(struct node* head);
 struct node* createLList();
 void LLPrintJobs(struct node* head, int mostRecentJob);
+void stopJob(struct node* head, int pid);
 
 #endif

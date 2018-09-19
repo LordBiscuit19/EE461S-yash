@@ -40,7 +40,10 @@ void handle_SIGINT(){
 }
 
 void handle_SIGTSTP(){
-    kill((-1)*topPid, SIGTSTP); 
+    if (fgPid != -1){
+        stopJob(head, fgPid);
+        fgPid = -1;
+    }
 }
 
 
@@ -334,6 +337,7 @@ int lnchPrg1(char** args){
     else { //parent
         setpgid(pid,pid);
         topPid = pid;
+        printf("pid: %d", pid);
         if(BGFlag){//BG process
             ++numJobs;
             head = addNode(head, pid, numJobs, 1, args[0]);
@@ -343,7 +347,8 @@ int lnchPrg1(char** args){
             ++numJobs;
             head = addNode(head, pid, numJobs, 1, args[0]);
             waitpid(pid, waitStat, 0);
-            head = removeNodePid(head, pid);
+            if (fgPid != -1)
+                head = removeNodePid(head, pid);
             fgPid = -1;
             return (0);
         }

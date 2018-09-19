@@ -155,3 +155,18 @@ void LLPrintJobs(struct node* head, int mostRecentJob){
     }
     return;
 }
+
+void stopJob(struct node* head, int pid){
+    if (head == NULL){
+        return;
+    }
+    struct node* cur = head;
+    while (cur != NULL){
+        if (cur->pid == pid){
+            kill((-1)*pid, SIGTSTP);
+            cur->state = 2;
+            break;
+        }
+    }
+    return;
+}
