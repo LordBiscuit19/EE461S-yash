@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wait.h>
+#include <string.h>
 
 
 struct node* createLList(){
@@ -11,19 +12,24 @@ struct node* createLList(){
     return newNode;
 }
 
-struct node* addNode(struct node* head, struct node* new){
+struct node* addNode(struct node* head, int pid, int jobNum, enum status state, const char* name){
+    struct node* newNode = malloc(sizeof(struct node));
+    newNode->pid = pid;
+    newNode->jobNum = jobNum;
+    newNode->state = state;
+    newNode->name = strdup(name);
+    newNode->next = NULL;
     if (head == NULL){
-        head = new;
-        printf("added node: %d\n", new->pid);
+        head = newNode;
+        printf("added node: %d\n", newNode->pid);
         return head;
     }
     struct node* cur = head;
     while (cur->next != NULL){
         cur = cur->next;
     }
-    cur->next = new;
-    new->next = NULL;
-    printf("added node: %d, to node: %d\n", new->pid, cur->pid);
+    cur->next = newNode;
+    printf("added node: %d, to node: %d\n", newNode->pid, cur->pid);
     return head;
 }
 
@@ -58,7 +64,7 @@ struct node* removeNodePid(struct node* head, int pid){
                 head = NULL;
             }
         }
-        if (prev != NULL){//in the middle or at end
+        else{//in the middle or at end
             printf("in middle\n");
             printf("removed node: %d\n", cur->pid);
             prev->next = cur->next;
@@ -106,7 +112,6 @@ struct node* removeNodeJobNum(struct node* head, int jobNum){
 }
 
 void freeLL(struct node* head){
-    printf("test\n");
     if (head == NULL){
         return;
     }
@@ -120,6 +125,7 @@ void freeLL(struct node* head){
         free (prev->name);
         free(prev);
     }
+    head = NULL;
     return;
 }
 

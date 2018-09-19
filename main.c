@@ -29,11 +29,13 @@ const char* SPACE = " ";
 const char* SHELL_CMDS[] = {"exit", "jobs"};
 const int NUM_SHELL_CMDS = 2;
 int topPid;
+int fgPid = -1;
 int numJobs = 0;
 struct node* head = NULL;
 
 void handle_SIGINT(){
-    head = removeNodePid(head, topPid);
+    if (fgPid != -1)
+        head = removeNodePid(head, fgPid);
     //kill((-1)*topPid, SIGINT);
 }
 
@@ -46,7 +48,8 @@ void handle_SIGCHLD(){
     int pid, status;
     pid = waitpid(-1, &status, WNOHANG);
     printf("SIGCHLD pid: %d\n", pid);
-    head = removeNodePid(head, pid);
+    //if (pid != fgPid)
+        //head = removeNodePid(head, pid);
 }
 
 
@@ -64,65 +67,51 @@ int main() {
         }
         parsedIn = parseString(userIn, SPACE);
         int i = 0;
-        /*
-        while (*(parsedIn + i) != NULL){
-            printf("%s\n", *(parsedIn + i));
-            i++;
-        }
-         */
         int pipeOffset = lookForPipe(parsedIn);
         if (pipeOffset != -1){
             parsedIn2 = parsedIn + pipeOffset + 1;    //parsedIn2 is the command after the pipe
             *(parsedIn + pipeOffset) = NULL; //split the user input string into the command before and after the pipe
             if (exCmd2(parsedIn, parsedIn2) == 42) {
                 i = 0;
-                /*
                 while (*(parsedIn + i) != NULL) {
                     free(*(parsedIn + i));
                     i++;
                 }
-                */
                 i = 0;
-                /*
                 while (*(parsedIn2 + i) != NULL) {
                     free(*(parsedIn2 + i));
                     i++;
                 }
                 free(userIn);
                 free(parsedIn);
-                */
+                free(parsedIn2);
                 exit(0);
             }
         }
         else if (exCmd1(parsedIn) == 42){
             i = 0;
-            /*
             while (*(parsedIn + i) != NULL){
                 free(*(parsedIn + i));
                 i++;
             }
             free(userIn);
             free(parsedIn);
-            */
             exit (0);
         }
         i = 0;
-        /*
         while (*(parsedIn + i) != NULL){
             free(*(parsedIn + i));
             i++;
         }
-        */
-        /*
         free(parsedIn);
         if (parsedIn2 != NULL) {
             while (*(parsedIn2 + i) != NULL) {
                 free(*(parsedIn2 + i));
                 i++;
             }
+            free(parsedIn2);
             parsedIn2 = NULL;
         }
-        */
     }
 
 }
@@ -321,9 +310,11 @@ void setUpRedir (char** args, _Bool output, _Bool input, _Bool error){
 int lnchPrg1(char** args){
     pid_t pid;
     int* waitStat;
-    pid = fork();
-    printf("child pid: %d\n", pid);
     _Bool BGFlag = lookForBGProcess(args, 0);
+    pid = fork();
+    if (BGFlag)
+        fgPid = pid;
+    printf("child pid: %d\n", pid);
 
     if (pid == 0){ //child
         setUpRedir(args, 1, 1, 1);
@@ -345,26 +336,21 @@ int lnchPrg1(char** args){
         topPid = pid;
         if(BGFlag){//BG process
             struct node* newNode = malloc(sizeof(struct node*));
-            newNode->pid = pid;
+            newNode->pid = pid; 
             numJobs++;
             newNode->jobNum = numJobs;
             newNode->state = 1;
-            strcpy(newNode->name, args[0]);
+            newNode->name = strdup(args[0]);
             newNode->next = NULL;
-            head = addNode(head, newNode);
+            //head = addNode(head, newNode);
             return (0);
         }
         else{//FG process
-            struct node* newNode = malloc(sizeof(struct node*));
-            newNode->pid = pid;
             numJobs++;
-            newNode->jobNum = numJobs;
-            newNode->state = 1;
-            strcpy(newNode->name, args[0]);
-            newNode->next = NULL;
-            head = addNode(head, newNode);
+            head = addNode(head, pid, numJobs, 1, args[0]);
             waitpid(pid, waitStat, 0);
             head = removeNodePid(head,pid);
+            fgPid = -1;
             return (0);
         }
     }
