@@ -1,7 +1,7 @@
 #ifndef LList_H
 #define LList_H
 
-enum status {Running, Stopped, Done};
+enum status {Running, Stopped};
 
 typedef struct node {
     int pid;

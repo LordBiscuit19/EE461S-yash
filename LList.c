@@ -21,7 +21,7 @@ struct node* addNode(struct node* head, int pid, int jobNum, enum status state, 
     newNode->next = NULL;
     if (head == NULL){
         head = newNode;
-        printf("added node: %d\n", newNode->pid);
+        //printf("added node: %d\n", newNode->pid);
         return head;
     }
     struct node* cur = head;
@@ -29,7 +29,7 @@ struct node* addNode(struct node* head, int pid, int jobNum, enum status state, 
         cur = cur->next;
     }
     cur->next = newNode;
-    printf("added node: %d, to node: %d\n", newNode->pid, cur->pid);
+    //printf("added node: %d, to node: %d\n", newNode->pid, cur->pid);
     return head;
 }
 
@@ -37,7 +37,7 @@ struct node* removeNodePid(struct node* head, int pid){
      if (head == NULL){
         return head;
     }
-    printf("start remove\n");
+    //printf("start remove\n");
     struct node* cur = head;
     struct node* prev = NULL;
     while (cur->next != NULL && cur->pid != pid){
@@ -46,18 +46,18 @@ struct node* removeNodePid(struct node* head, int pid){
         cur = cur->next;
     }
     if (cur->pid == pid){ //if the node with the desired pid was found
-        printf("Node found\n");
+        //printf("Node found\n");
         if (prev == NULL){ //at beginning
-            printf("at beginning\n");
+            //printf("at beginning\n");
             if (cur->next != NULL){ //if there are more than 1 node
                 head->next = cur->next;
-                printf("removed node: %d\n", cur->pid);
+                //printf("removed node: %d\n", cur->pid);
                 kill ((-1)*cur->pid, SIGINT);
                 free (cur->name);
                 free(cur);
             }
             else{   //if there is only one node
-                printf("removed node: %d\n", cur->pid);
+               // printf("removed node: %d\n", cur->pid);
                 kill ((-1)*cur->pid, SIGINT);
                 free (cur->name);
                 free(cur);
@@ -65,8 +65,8 @@ struct node* removeNodePid(struct node* head, int pid){
             }
         }
         else{//in the middle or at end
-            printf("in middle\n");
-            printf("removed node: %d\n", cur->pid);
+            //printf("in middle\n");
+            //printf("removed node: %d\n", cur->pid);
             prev->next = cur->next;
             kill ((-1)*cur->pid, SIGINT);
             free (cur->name);
@@ -118,7 +118,7 @@ void freeLL(struct node* head){
     struct node* cur = head;
     struct node* prev = NULL;
     while (cur != NULL){
-        printf("removed node: %d\n", cur->pid);
+        //printf("removed node: %d\n", cur->pid);
         kill ((-1)*cur->pid, SIGINT);
         prev = cur;
         cur = cur->next;
@@ -148,9 +148,6 @@ void LLPrintJobs(struct node* head, int mostRecentJob){
                 break;
             case 2 :
                 printf("Stopped    ");
-                break;
-            case 3 :
-                printf("Done    ");
                 break;
         }
         printf("%s\n", cur->name); 
